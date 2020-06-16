@@ -16,12 +16,16 @@ db = SQLAlchemy()
 
 def create_app(config_name):
     """通过传入不同的配置名,切换不同的环境"""
+    app = Flask(__name__)
+
     config = config_dict.get(config_name)
 
     # 设置日志级别
     log_file(config.LEVEL)
-    app = Flask(__name__)
     app.config.from_object(Config)
+    # app.config.from_object(Config)要 init_app之前
+    # SQLAlchemy对象关联app
+    db.init_app(app)
     # 初始化redis配置
     # redis.StrictRedis(host=Config.RDIES_HOST, port=Config.RDIES_PORT)
 
