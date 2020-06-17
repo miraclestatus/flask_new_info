@@ -184,7 +184,9 @@ function sendSMSCode() {
         return;
     }
 
-    // TODO 发送短信验证码
+    // TODO 发送短信验证码 ajax 请求
+
+
 }
 
 // 调用该函数模拟点击左侧按钮
