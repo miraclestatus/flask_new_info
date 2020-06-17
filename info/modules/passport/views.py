@@ -1,21 +1,173 @@
-# -*- coding: utf-8 -*-
-# @Time    : 2020/6/17 17:42
-# @Author  : Eric Lee
-# @Email   : li.yan_li@neusoft.com
-# @File    : views.py
-# @Software: PyCharm
 import random
-import re
-from info.libs.yuntongxun.sms import CCP
-import redis
-from flask import request, jsonify, current_app, make_response, json
+from datetime import datetime
 
-from info import redis_store, constants
+from flask import make_response, request, jsonify, current_app, json, session
+
+from info import redis_store, constants, db
+from info.libs.yuntongxun.sms import CCP
+from info.models import User
 from info.utils.captcha.captcha import captcha
 from info.utils.response_code import RET
 from . import passport_blu
+import re
+
+#功能描述: 退出用户
+# 请求路径: /passport/logout
+# 请求方式: POST
+# 请求参数: 无
+# 返回值: errno, errmsg
+@passport_blu.route('/logout', methods=['POST'])
+def logout():
+
+    #清空session
+    # session.clear()
+    session.pop('user_id',None)
+    session.pop('mobile',None)
+    session.pop('nick_name',None)
+
+    #返回响应
+    return jsonify(errno=RET.OK,errmsg="退出成功")
+
+# 功能描述
+# 请求路径: /passport/login
+# 请求方式: POST
+# 请求参数: mobile,password
+# 返回值: errno, errmsg
+@passport_blu.route('/login', methods=['POST'])
+def login():
+    """
+    思路分析:
+    1.获取参数
+    2.校验参数
+    3.通过手机号获取用户对象
+    4.判断用户对象是否存在
+    5.判断密码是否正确
+    6.保存用户的登陆信息到session ?
+    7.返回响应
+    :return:
+    """
+    # 1.获取参数
+    mobile = request.json.get('mobile')
+    password = request.json.get('password')
+
+    # 2.校验参数
+    if not all([mobile,password]):
+        return jsonify(errno=RET.PARAMERR,errmsg="参数不全")
+
+    if not re.match('1[35789]\d{9}',mobile):
+        return jsonify(errno=RET.DATAERR,errmsg="手机号格式有误")
+
+    # 3.通过手机号获取用户对象
+    try:
+        user = User.query.filter(User.mobile == mobile).first()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="查询用户异常")
+
+    # 4.判断用户对象是否存在
+    if not user:
+        return jsonify(errno=RET.NODATA,errmsg="该用户未注册")
+
+    # 5.判断密码是否正确
+    # if user.password_hash != password:
+    if not user.check_passowrd(password):
+        return jsonify(errno=RET.DATAERR,errmsg="密码错误")
+
+    # 6.保存用户的登陆信息到session
+    session['user_id'] = user.id
+    session['mobile'] = user.mobile
+    session['nick_name'] = user.nick_name
+
+    #用户最后登陆时间,当前系统时间
+    user.last_login = datetime.now()
+
+    # 7.返回响应
+    return jsonify(errno=RET.OK,errmsg="登陆成功")
 
 
+#功能描述: 注册用户
+# 请求路径: /passport/register
+# 请求方式: POST
+# 请求参数: mobile, sms_code,password
+# 返回值: errno, errmsg
+@passport_blu.route('/register', methods=['POST'])
+def register():
+    """
+    思路分析:
+    1.获取参数
+    2.校验参数,为空校验
+    3.通过手机号取出短信验证码
+    4.判断短信验证码是否过期
+    5.删除redis短信验证码
+    6.判断验证码正确性
+    7.创建用户对象
+    8.设置用户属性
+    9.保存到数据库
+    10.返回响应
+    :return:
+    """
+    # 1.获取参数
+    # json_data = request.data
+    # dict_data = json.loads(json_data)
+
+    #上面两句话可以写成一句话,request.get_json()或者request.json
+    dict_data = request.json
+    mobile = dict_data.get('mobile')
+    sms_code = dict_data.get('sms_code')
+    password = dict_data.get('password')
+
+    # 2.校验参数,为空校验
+    if not all([mobile,sms_code,password]):
+        return jsonify(errno=RET.PARAMERR,errmsg="参数不全")
+
+    # 3.通过手机号取出短信验证码
+    try:
+        redis_sms_code = redis_store.get('sms_code:%s'%mobile)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="获取短信验证码异常")
+
+    # 4.判断短信验证码是否过期
+    if not redis_sms_code:
+        return jsonify(errno=RET.NODATA,errmsg="短信验证码已过期")
+
+    # 5.删除redis短信验证码
+    try:
+        redis_store.delete('sms_code:%s'%mobile)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="删除短信验证码异常")
+
+    # 6.判断验证码正确性
+    if sms_code != redis_sms_code:
+        return jsonify(errno=RET.DATAERR,errmsg="短信验证码错误")
+
+    # 7.创建用户对象
+    user = User()
+
+    # 8.设置用户属性
+    user.nick_name =mobile
+    # user.password_hash = password
+    user.password = password
+    user.mobile = mobile
+
+    # 9.保存到数据库
+    try:
+        db.session.add(user)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        db.session.rollback()
+        return jsonify(errno=RET.DBERR,errmsg="用户注册失败")
+
+    # 10.返回响应
+    return jsonify(errno=RET.OK,errmsg="注册成功")
+
+#功能描述: 发送短信
+# 请求路径: /passport/sms_code
+# 请求方式: POST
+# 请求参数: mobile, image_code,image_code_id
+# 返回值: errno, errmsg
 @passport_blu.route('/sms_code',methods=['POST'])
 def get_sms_code():
     """
@@ -141,7 +293,3 @@ def get_image_code():
     response = make_response(image_data)
     response.headers["Content-Type"] = 'image/jpg'
     return response
-
-
-
-
