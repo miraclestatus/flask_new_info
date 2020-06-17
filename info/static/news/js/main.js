@@ -168,6 +168,7 @@ function generateImageCode() {
 // 发送短信验证码
 function sendSMSCode() {
     // 校验参数，保证输入框有数据填写
+    //移除按钮点击事件
     $(".get_code").removeAttr("onclick");
     var mobile = $("#register_mobile").val();
     if (!mobile) {
@@ -183,41 +184,55 @@ function sendSMSCode() {
         $(".get_code").attr("onclick", "sendSMSCode();");
         return;
     }
+
+    // TODO 发送短信验证码
+    //拼接参数
     var params = {
         "mobile":mobile,
-        "image_code":image_code,
-        "image_code_id":image_code_id
+        "image_code":imageCode,
+        "image_code_id":imageCodeId
     }
-    // TODO 发送短信验证码 ajax 请求
+
+    //发送获取短信请求
     $.ajax({
-        url:'/passport/sms_code',
+        url:'/passport/sms_code',//请求地址
         type:'post',
-        data: JSON.stringify(params),
-        ContentType: 'application/json',
+        data:JSON.stringify(params),
+        contentType:'application/json',
         headers:{'X-CSRFToken':getCookie('csrf_token')},
         success: function (resp) {
-            // 判断请求是否成功
+            //判断是否请求成功
             if(resp.errno == '0'){
-                  // 倒计时
+
+                //定义倒计时时间
                 var num = 60;
-                var t  = setInterval(function () {
-                    if (num ==  1){
+
+                //创建定时器
+                var t = setInterval(function () {
+
+                    //判断是否倒计时结束
+                    if(num == 1){
+                        //清除定时器
                         clearInterval(t)
-                        $(".get_code").attr("onclick", 'sendSMSCode()');
+                        //设置标签点击事件,并设置内容
+                        $(".get_code").attr("onclick",'sendSMSCode()');
                         $(".get_code").html('点击获取验证码');
-                    } else {
+
+
+                    }else{
+                        //设置秒数
                         num -= 1;
-                         $(".get_code").html(num +'秒');
+                        $('.get_code').html(num + '秒');
                     }
-                }, 1000); // 一秒走一次
-            }else {
+                },1000);//一秒走一次
+
+            }else{//发送失败
                 alert(resp.errmsg);
-                $(".get_code").attr("onclick", 'sendSMSCode()');
+                // 重新设置点击事件,更新图片验证码
+                $(".get_code").attr("onclick",'sendSMSCode()');
                 generateImageCode();
             }
-
         }
-
     })
 
 }
