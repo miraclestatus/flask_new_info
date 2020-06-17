@@ -34,7 +34,8 @@ def create_app(config_name):
     redis_store = redis.StrictRedis(host=config.REDIS_HOST, port=config.REDIS_PORT)
 
     # 开启csrf 保护， 只用于服务器验证功能
-    CSRFProtect(app)
+    # TODO
+    # CSRFProtect(app)
     # 设置session保存指定位置
     Session(app)
 

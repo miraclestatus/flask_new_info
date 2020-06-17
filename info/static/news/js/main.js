@@ -183,9 +183,42 @@ function sendSMSCode() {
         $(".get_code").attr("onclick", "sendSMSCode();");
         return;
     }
-
+    var params = {
+        "mobile":mobile,
+        "image_code":image_code,
+        "image_code_id":image_code_id
+    }
     // TODO 发送短信验证码 ajax 请求
+    $.ajax({
+        url:'/passport/sms_code',
+        type:'post',
+        data: JSON.stringify(params),
+        ContentType: 'application/json',
+        headers:{'X-CSRFToken':getCookie('csrf_token')},
+        success: function (resp) {
+            // 判断请求是否成功
+            if(resp.errno == '0'){
+                  // 倒计时
+                var num = 60;
+                var t  = setInterval(function () {
+                    if (num ==  1){
+                        clearInterval(t)
+                        $(".get_code").attr("onclick", 'sendSMSCode()');
+                        $(".get_code").html('点击获取验证码');
+                    } else {
+                        num -= 1;
+                         $(".get_code").html(num +'秒');
+                    }
+                }, 1000); // 一秒走一次
+            }else {
+                alert(resp.errmsg);
+                $(".get_code").attr("onclick", 'sendSMSCode()');
+                generateImageCode();
+            }
 
+        }
+
+    })
 
 }
 
