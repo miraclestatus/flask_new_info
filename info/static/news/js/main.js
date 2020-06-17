@@ -149,9 +149,19 @@ $(function(){
 })
 
 var imageCodeId = ""
+var preimageCodeId = ""
 
 // TODO 生成一个图片验证码的编号，并设置页面中图片验证码img标签的src属性
 function generateImageCode() {
+    // 生成一个随机字符串
+    imageCodeId = generateUUID();
+    // 验证码图片地址
+    image_url = '/passport/image_code?cur_id='+imageCodeId+'&pre_id='+preimageCodeId
+    // 将image_url设置到 image 标签的src属性中
+    $('.get_pic_code').attr('src', image_url)
+
+    //
+    preimageCodeId = imageCodeId
 
 }
 
