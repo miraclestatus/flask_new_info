@@ -105,7 +105,7 @@ $(function () {
 
 
     // TODO 注册按钮点击
-    $("register_form_con").submit(function (e) {
+    $(".register_form_con").submit(function (e) {
         // 阻止默认提交操作, 不让其往默认的action提交
         e.preventDefault()
         // 取到用户输入的内容
@@ -114,22 +114,22 @@ $(function () {
         var password = $("#register_password").val()
         // 判断是否为空
         if (!mobile) {
-            $("register-mobile-err").show();
+            $("#register-mobile-err").show();
             return;
         }
         if (!sms_code) {
-            $("register-sms-code-err").show();
+            $("#register-sms-code-err").show();
             return;
         }
         if (!password) {
-            $("register-password-err").html("请填写密码");
-            $("register-password-err").show();
+            $("#register-password-err").html("请填写密码");
+            $("#register-password-err").show();
             return;
         }
         if (password.length < 6) {
-            $("register-password-err").html("密码长度不能少于6位");
+            $("#register-password-err").html("密码长度不能少于6位");
 
-            $("register-password-err").show();
+            $("#register-password-err").show();
             return;
         }
 
@@ -151,6 +151,7 @@ $(function () {
                 //判断是否请求成功
                 if (resp.errno == '0') {
                     // 重新加载当前页面即可
+                    alert("注册成功")
                     window.location.reload()
 
                 } else {//发送失败

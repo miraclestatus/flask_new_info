@@ -39,7 +39,7 @@ def register():
         return jsonify(errno=RET.PARAMERR,errmsg="参数不全")
     #     3. 通过手机号取出验证码
     try:
-        redis_sms_code = redis_store.get('sms_code%s'%mobile)
+        redis_sms_code = redis_store.get('sms_code:%s'%mobile)
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR,errmsg="获取短信验证码异常")
