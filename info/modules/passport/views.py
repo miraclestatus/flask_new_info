@@ -31,15 +31,15 @@ def register():
     # dict_data = json.loads(json_data)
     # 下面这句话等同于上面两句
     dict_data = request.json
-    moblie = dict_data.get('moblie')
+    mobile = dict_data.get('mobile')
     sms_code = dict_data.get('sms_code')
     password = dict_data.get('password')
     #   2.校验参数
-    if not all([moblie,sms_code,password]):
+    if not all([mobile,sms_code,password]):
         return jsonify(errno=RET.PARAMERR,errmsg="参数不全")
     #     3. 通过手机号取出验证码
     try:
-        redis_sms_code = redis_store.get('sms_code%s'%moblie)
+        redis_sms_code = redis_store.get('sms_code%s'%mobile)
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR,errmsg="获取短信验证码异常")
@@ -48,7 +48,7 @@ def register():
         return jsonify(errno=RET.NODATA,errmsg="短信验证码已经过期")
     # 5. 删除redis中的短信验证码
     try:
-        redis_store.delete('sms_code:%s' % moblie)
+        redis_store.delete('sms_code:%s' % mobile)
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR, errmsg="删除短信验证码异常")
@@ -60,9 +60,9 @@ def register():
     #  7.创建用户对象
     user = User()
     #     8.设置用户属性
-    user.nick_name = moblie
+    user.nick_name = mobile
     user.password = password
-    user.mobile = moblie
+    user.mobile = mobile
     #     9.保存到数据库
     try:
         db.session.add(user)
