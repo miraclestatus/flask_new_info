@@ -11,6 +11,69 @@ from info.utils.response_code import RET
 from . import passport_blu
 import re
 
+# 注册功能的实现
+@passport_blu.route('/register', methods=['POST'])
+def register():
+    """
+    1. 获取参数
+    2.校验参数
+    3. 通过手机号取出验证码
+    4. 判断短信验证码是否过期
+    5. 删除redis中的短信验证码
+    6.判断验证码的正确性
+    7.创建用户对象
+    8.设置用户属性
+    9.保存到数据库
+    10. 返回响应
+    :return:
+    """
+    # json_data = request.data
+    # dict_data = json.loads(json_data)
+    # 下面这句话等同于上面两句
+    dict_data = request.json
+    moblie = dict_data.get('moblie')
+    sms_code = dict_data.get('sms_code')
+    password = dict_data.get('password')
+    #   2.校验参数
+    if not all([moblie,sms_code,password]):
+        return jsonify(errno=RET.PARAMERR,errmsg="参数不全")
+    #     3. 通过手机号取出验证码
+    try:
+        redis_sms_code = redis_store.get('sms_code%s'%moblie)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="获取短信验证码异常")
+    #判断短信验证码是否过期
+    if not redis_sms_code:
+        return jsonify(errno=RET.NODATA,errmsg="短信验证码已经过期")
+    # 5. 删除redis中的短信验证码
+    try:
+        redis_store.delete('sms_code:%s' % moblie)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="删除短信验证码异常")
+
+    # 6.判断验证码的正确性
+    if redis_sms_code != sms_code:
+        return jsonify(errno=RET.DATAERR, errmsg="短信验证码错误")
+
+    #  7.创建用户对象
+    user = User()
+    #     8.设置用户属性
+    user.nick_name = moblie
+    user.password = password
+    user.mobile = moblie
+    #     9.保存到数据库
+    try:
+        db.session.add(user)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        db.session.rollback()
+        return jsonify(errno=RET.DBERR, errmsg="用户注册失败")
+
+    #     10. 返回响应
+    return jsonify(errno=RET.OK, errmsg="用户注册成功")
 
 
 #功能描述: 发送短信
