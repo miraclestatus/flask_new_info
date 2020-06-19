@@ -10,6 +10,49 @@ from info.utils.captcha.captcha import captcha
 from info.utils.response_code import RET
 from . import passport_blu
 import re
+# 登录
+@passport_blu.route('/login', methods=['POST'])
+def login():
+    # 1.获取参数
+    # 2.校验
+    # 3.通过手机号获取对象
+    # 4. 判断用户是否存在
+    # 5.判断密码
+    # 6. 保存用户信息到session中
+    # 7. 返回响应
+
+    # 1.获取参数
+    mobile = request.json.get('mobile')
+    password = request.json.get('password')
+    # 2.校验
+    if not all([mobile, password]):
+        return jsonify(errno=RET.PARAMERR, errmsg="参数不全")
+    if not re.match('1[35789]\d{9}',mobile):
+        return jsonify(errno=RET.DATAERR,errmsg="手机号格式不正确")
+    # 3.通过手机号获取对象
+    try:
+        user = User.query.filter(User.mobile == mobile).first()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="查询用户异常")
+    # 4. 判断用户是否存在
+    if not user:
+        return jsonify(errno=RET.NODATA,errmsg="该用户未注册")
+    # 5.判断密码
+    # if not user.check_passowrd(password):
+    if user.password_hash != password:
+        return jsonify(errno=RET.DATAERR,errmsg="密码错误")
+
+    # 6. 保存用户信息到session中
+    session['user_id'] = user.id
+    session['mobile'] = user.mobile
+    session['nick_name'] = user.nick_name
+    user.last_login = datetime.now()
+    # 7. 返回响应
+    current_app.logger.debug('登录成功')
+
+    return jsonify(errno=RET.OK, errmsg="登录成功")
+
 
 # 注册功能的实现
 @passport_blu.route('/register', methods=['POST'])
@@ -73,6 +116,7 @@ def register():
         return jsonify(errno=RET.DBERR, errmsg="用户注册失败")
 
     #     10. 返回响应
+
     return jsonify(errno=RET.OK, errmsg="用户注册成功")
 
 

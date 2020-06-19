@@ -102,7 +102,52 @@ $(function () {
     })
 
     // TODO 登录表单提交
+    $(".login_form_con").submit(function (e) {
+        // 阻止默认提交操作, 不让其往默认的action提交
+        e.preventDefault()
+        // 取到用户输入的内容
+        var mobile = $(".login_form #mobile").val()
+        var password = $(".login_form #password").val()
+        // 判断是否为空
+        if (!mobile) {
+            $("#login-mobile-err").show();
+            return;
+        }
 
+        if (!password) {
+            $("#login-password-err").show();
+            return;
+        }
+
+
+        // 发起注册请求
+        //拼接参数
+        var params = {
+            "mobile": mobile,
+            "password": password
+        }
+
+        $.ajax({
+            url: '/passport/login',//请求地址
+            type: 'post',
+            data: JSON.stringify(params),
+            contentType: 'application/json',
+            headers: {'X-CSRFToken': getCookie('csrf_token')},
+            success: function (resp) {
+                //判断是否请求成功
+                if (resp.errno == '0') {
+                    // 重新加载当前页面即可
+                    alert("登录成功")
+                    window.location.reload()
+
+                } else {//发送失败
+                    alert(resp.errmsg);
+                }
+            }
+        })
+
+
+    })
 
     // TODO 注册按钮点击
     $(".register_form_con").submit(function (e) {
