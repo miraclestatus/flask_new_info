@@ -47,4 +47,26 @@ $(function () {
 
 function updateNewsData() {
     // TODO 更新新闻数据
+    var params = {
+        "page": 1,
+        "per_page": 10,
+        "cid": currentCid
+    }
+    $.get("/newslist", params,function (resp) {
+        if (resp){
+            //清空原来数据
+            $(".list_con").html("")
+            // 显示数据
+            for (var i=0; i < resp.newsList.length; i++){
+                var news = resp.newsList[i]
+                var content = '<li>'
+                content += '<a href="#" class="news_pic fl"><img src="../../static/news/images/news_pic.jpg"></a>\n'
+                content += '<a href="#" class="news_title fl">'+news.title+'</a>'
+
+                content += '</li>'
+                $(".list_con").append(content)
+            }
+        }
+    })
+
 }
