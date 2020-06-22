@@ -40,6 +40,9 @@ def create_app(config_name):
 
     from info.modules.passport import passport_blu
     app.register_blueprint(passport_blu)
+
+    from info.utils.common import do_index_class
+    app.add_template_filter(do_index_class, "index_class")
     return app
 #记录日志信息方法
 def log_file(level):
