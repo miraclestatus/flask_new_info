@@ -40,11 +40,17 @@ def create_app(config_name):
     from info.modules.index import index_blu
     app.register_blueprint(index_blu)
 
+    from info.modules.news import news_blu
+    app.register_blueprint(news_blu)
+
     from info.modules.passport import passport_blu
     app.register_blueprint(passport_blu)
 
+
     from info.utils.common import do_index_class
     app.add_template_filter(do_index_class, "index_class")
+
+
     @app.after_request
     def after_request(response):
         # 调用生成csrf 的函数
